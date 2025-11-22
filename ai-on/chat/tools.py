@@ -222,3 +222,10 @@ call_report_agent_declaration = {
         "required": ["message"]
     }
 }
+
+
+# ============================================================================
+# ADVISOR AGENT CALL TOOL
+# ============================================================================
+
+from advisor.tools import call_advisor, call_advisor_declaration

@@ -49,6 +49,12 @@ AVAILABLE TOOLS - YOU MUST USE THESE WHEN APPROPRIATE:
 4. **call_report_agent**: REQUIRED when user asks for reports or summaries
    - Example: "Show me my spending report" → CALL call_report_agent immediately
 
+5. **call_advisor**: REQUIRED when user asks about products, shopping advice, or purchase decisions
+   - Example: "Should I buy this laptop for 50000?" → CALL call_advisor immediately
+   - Example: "Recommend a phone under 30000" → CALL call_advisor immediately
+   - Example: "Compare iPhone vs Samsung" → CALL call_advisor immediately
+   - Example: "Can I afford a new TV?" → CALL call_advisor immediately
+
 CRITICAL RULES:
 - When a user's message matches a tool's purpose, you MUST call that tool
 - Do NOT say "I will call..." or "I can help you with..." - just call the tool immediately
@@ -92,7 +98,9 @@ def get_or_create_chatbot_agent() -> agentModel:
         call_expense_manager,
         call_expense_manager_declaration,
         call_report_agent,
-        call_report_agent_declaration
+        call_report_agent_declaration,
+        call_advisor,
+        call_advisor_declaration
     )
     
     register_agent_function(
@@ -121,6 +129,13 @@ def get_or_create_chatbot_agent() -> agentModel:
         func_name="call_report_agent",
         function_declaration=call_report_agent_declaration,
         function=call_report_agent
+    )
+    
+    register_agent_function(
+        agent_id=agent.id,
+        func_name="call_advisor",
+        function_declaration=call_advisor_declaration,
+        function=call_advisor
     )
     
     return agent
@@ -248,7 +263,8 @@ def process_chatbot_message(user: User, message: str) -> dict:
                 edit_user_profile,
                 call_main_coordinator,
                 call_expense_manager,
-                call_report_agent
+                call_report_agent,
+                call_advisor
             )
             
             if func_name == "edit_user_profile":
@@ -259,6 +275,8 @@ def process_chatbot_message(user: User, message: str) -> dict:
                 result = call_expense_manager(user, **func_args)
             elif func_name == "call_report_agent":
                 result = call_report_agent(user, **func_args)
+            elif func_name == "call_advisor":
+                result = call_advisor(user, **func_args)
             else:
                 result = {"type": "error", "data": {"error": f"Unknown function: {func_name}"}}
                 print(f"DEBUG: Unknown function {func_name}")

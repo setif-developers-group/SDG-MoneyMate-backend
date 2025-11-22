@@ -241,12 +241,74 @@ The Expense Manager handles multi-modal expense tracking and reporting using **G
     -   **Request Body:** `{"message": "Generate a monthly report"}`.
     -   **Response:** `{"report": "# Financial Report..."}`.
 
+### Advisor
+
+The Advisor module provides smart product recommendations and purchase guidance using **Gemini 2.5 Flash**. AI analyzes your budget and spending patterns to help you make informed purchasing decisions.
+
+-   **Product Recommendations:** `POST /api/advisor/recommend/`
+    -   Get AI-powered product recommendations based on your budget and preferences.
+    -   **Request Body:**
+        ```json
+        {
+          "message": "Recommend a laptop for programming under 50000 DZD"
+        }
+        ```
+    -   **Response:**
+        ```json
+        {
+          "advice": "# Laptop Recommendations...",
+          "session_id": 123
+        }
+        ```
+    -   **Note:** The AI considers your budget constraints and suggests alternatives if needed.
+
+-   **Purchase Analysis:** `POST /api/advisor/analyze-purchase/`
+    -   Analyze if a specific purchase fits your financial situation.
+    -   **Request Body:**
+        ```json
+        {
+          "message": "Should I buy a phone for 80000 DZD?"
+        }
+        ```
+    -   **Response:**
+        ```json
+        {
+          "advice": "# Purchase Analysis...",
+          "session_id": 124
+        }
+        ```
+    -   **Analysis includes:** Budget impact, category fit, overspending risk, alternatives.
+
+-   **Product Comparison:** `POST /api/advisor/compare/`
+    -   Compare multiple products and get a budget-aware recommendation.
+    -   **Request Body:**
+        ```json
+        {
+          "message": "Compare iPhone 15 vs Samsung S24"
+        }
+        ```
+    -   **Response:**
+        ```json
+        {
+          "advice": "# Product Comparison...",
+          "session_id": 125
+        }
+        ```
+
+-   **Advisor History:** `GET /api/advisor/history/`
+    -   Retrieve your past advisor sessions and recommendations.
+
+-   **Chatbot Integration:**
+    -   The advisor is fully integrated with the chatbot. Simply ask product-related questions:
+        -   "Should I buy this laptop?"
+        -   "Recommend a phone under 30000"
+        -   "Compare these two products"
+
 ### Other Modules
 
 Additional modules are available but not yet fully documented:
 
 -   **AI Core:** `/api/ai_core/` - Main AI Coordinator (agent-to-agent only, no direct user access)
--   **Advisor:** `/api/advisor/` - Product advisor agent
 -   **Forecast:** `/api/forecast/` - Financial forecasting agent
 -   **Notify:** `/api/notify/` - Notification management
 
