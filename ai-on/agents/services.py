@@ -98,7 +98,7 @@ def build_config(agent: agentModel) -> types.GenerateContentConfig:
         config.tools = [tools]
         config.tool_config = types.ToolConfig(
             function_calling_config=types.FunctionCallingConfig(
-                mode="ANY"
+                mode="AUTO"
             )
         )
     

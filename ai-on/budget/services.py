@@ -123,6 +123,7 @@ def _execute_agent_task(user: User, prompt: str, agent: agentModel) -> dict:
     """
     Helper to execute a task with the Budget Agent.
     """
+    print(f"DEBUG: Budget Agent is running now... executing task: {prompt}")
     history = get_agent_history(agent, user)
     
     # Inject User Profile if history is empty

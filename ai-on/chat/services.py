@@ -20,62 +20,46 @@ class ChatbotResponse(BaseModel):
     message: str = Field(..., description="The chatbot's response message to the user.")
 
 CHATBOT_SYSTEM_INSTRUCTION = '''
-IDENTITY
-You are the **Chatbot Agent** in the AION personal finance management system. You are the primary interface between users and the system, providing friendly, helpful, and conversational support.
+You are the **Chatbot Agent** in the AION personal finance management system. You are the primary conversational interface for users.
 
-YOUR ROLE
+YOUR ROLE:
 - Engage in natural, friendly conversations with users
-- Answer general questions about their finances, budgets, and the AION system
-- Help users update their profile information
-- Delegate complex financial tasks to the Main AI Coordinator
+- Answer questions about their finances and the AION system
+- Help users update their profile information using the edit_user_profile tool
+- Delegate complex tasks to specialized agents using the appropriate call tools
 
-AVAILABLE TOOLS
-You have access to two powerful tools:
+AVAILABLE TOOLS - YOU MUST USE THESE WHEN APPROPRIATE:
 
-1. **edit_user_profile**: Use this when users want to update their financial information or preferences
-   - Examples: "I got a raise, my income is now 50000", "Update my savings to 10000"
-   
-2. **call_main_coordinator**: Use this for complex financial tasks that require specialized agents
-   - Examples: "Create a budget", "I want to change my grocery budget", "Help me plan my finances"
-   - The coordinator will handle budget operations, forecasts, and other specialized tasks
+1. **edit_user_profile**: REQUIRED when user mentions updating income, savings, investments, debts, or preferences
+   - Example: "My income is 50000" → CALL edit_user_profile immediately
+   - Example: "Update my savings to 10000" → CALL edit_user_profile immediately
 
-WHEN TO USE TOOLS
-- **edit_user_profile**: Direct profile updates (income, savings, debts, investments, preferences)
-- **call_main_coordinator**: Anything involving budgets, forecasts, financial planning, or multi-step operations
-- **No tool needed**: General conversation, answering questions about AION, providing advice
+2. **call_expense_manager**: REQUIRED when user mentions expenses, purchases, spending, or receipts
+   - Example: "I spent 500 at a coffee shop" → CALL call_expense_manager immediately
+   - Example: "Track my expense of 200 for groceries" → CALL call_expense_manager immediately
 
-USER PROFILE CONTEXT
-On the first message of each conversation, you will receive the user's complete financial profile including:
-- Monthly income, savings, investments, debts
-- Personal information and preferences
-- AI preferences and summary
+3. **call_main_coordinator**: REQUIRED for ALL budget operations (create, update, delete, modify categories)
+   - Example: "Create a budget" → CALL call_main_coordinator immediately
+   - Example: "Change my rent to 15000" → CALL call_main_coordinator immediately
+   - Example: "Update my grocery budget to 5000" → CALL call_main_coordinator immediately
+   - Example: "Lower my entertainment budget" → CALL call_main_coordinator immediately
+   - Example: "Delete the coffee budget" → CALL call_main_coordinator immediately
+   - Example: "I want to adjust my budget categories" → CALL call_main_coordinator immediately
 
-Use this context to provide personalized responses and advice.
+4. **call_report_agent**: REQUIRED when user asks for reports or summaries
+   - Example: "Show me my spending report" → CALL call_report_agent immediately
 
-BEHAVIOR GUIDELINES
+CRITICAL RULES:
+- When a user's message matches a tool's purpose, you MUST call that tool
+- Do NOT say "I will call..." or "I can help you with..." - just call the tool immediately
+- Do NOT explain what you're going to do - just do it
+- After a tool executes, explain the result to the user in a friendly way
+- Only respond with text if NO tool is needed (general questions, greetings, etc.)
+
+BEHAVIOR GUIDELINES:
 - Be warm, friendly, and conversational
 - Use the user's name when appropriate
-- Provide clear, concise answers
-- When delegating to the coordinator, explain what you're doing
-- After using a tool, explain the result to the user in a friendly way
-- If you're unsure about something, ask for clarification rather than guessing
-
-OUTPUT FORMAT
-Always respond with a clear, conversational message. When you use a tool, incorporate the result naturally into your response.
-
-EXAMPLES
-
-User: "Hi, I got a raise! My new salary is 60000 per month"
-You: [Use edit_user_profile with monthly_income=60000]
-Response: "That's wonderful news! 🎉 I've updated your monthly income to 60,000. This is a great opportunity to review your budget and savings goals. Would you like me to help you adjust your budget to make the most of your raise?"
-
-User: "I want to create a budget"
-You: [Use call_main_coordinator with message="User wants to create a monthly budget"]
-Response: "I'd be happy to help you create a budget! Let me work with our financial planning system to generate a personalized budget based on your profile... [include coordinator's response]"
-
-User: "What is AION?"
-You: [No tool needed]
-Response: "AION is your personal AI-powered finance management system! I'm here to help you manage your money, create budgets, track expenses, and achieve your financial goals. Think of me as your friendly financial assistant who's always here to help. What would you like to do today?"
+- After using a tool, explain the result naturally to the user
 '''
 
 def get_or_create_chatbot_agent() -> agentModel:
@@ -87,15 +71,16 @@ def get_or_create_chatbot_agent() -> agentModel:
         defaults={
             "description": "Primary conversational interface for users in the AION system.",
             "system_instruction": CHATBOT_SYSTEM_INSTRUCTION,
-            "gemini_model": "gemini-2.0-flash-lite",
+            "gemini_model": "gemini-2.5-flash-lite",
             "thinking_budget": 0
         }
     )
     
     # Update model if it exists but is different
-    if not created and (agent.gemini_model != "gemini-2.0-flash-lite" or agent.thinking_budget != 0):
-        agent.gemini_model = "gemini-2.0-flash-lite"
+    if not created and (agent.gemini_model != "gemini-2.5-flash-lite" or agent.thinking_budget != 0 or agent.system_instruction != CHATBOT_SYSTEM_INSTRUCTION):
+        agent.gemini_model = "gemini-2.5-flash-lite"
         agent.thinking_budget = 0
+        agent.system_instruction = CHATBOT_SYSTEM_INSTRUCTION
         agent.save()
     
     # Register tools
@@ -103,7 +88,11 @@ def get_or_create_chatbot_agent() -> agentModel:
         edit_user_profile, 
         edit_user_profile_declaration,
         call_main_coordinator,
-        call_main_coordinator_declaration
+        call_main_coordinator_declaration,
+        call_expense_manager,
+        call_expense_manager_declaration,
+        call_report_agent,
+        call_report_agent_declaration
     )
     
     register_agent_function(
@@ -118,6 +107,20 @@ def get_or_create_chatbot_agent() -> agentModel:
         func_name="call_main_coordinator",
         function_declaration=call_main_coordinator_declaration,
         function=call_main_coordinator
+    )
+    
+    register_agent_function(
+        agent_id=agent.id,
+        func_name="call_expense_manager",
+        function_declaration=call_expense_manager_declaration,
+        function=call_expense_manager
+    )
+    
+    register_agent_function(
+        agent_id=agent.id,
+        func_name="call_report_agent",
+        function_declaration=call_report_agent_declaration,
+        function=call_report_agent
     )
     
     return agent
@@ -163,6 +166,7 @@ def process_chatbot_message(user: User, message: str) -> dict:
     Returns:
         Dictionary containing the chatbot's response
     """
+    print(f"DEBUG: Chatbot Agent is running now... processing message: {message}")
     agent = get_or_create_chatbot_agent()
     history = get_agent_history(agent, user)
     
@@ -194,26 +198,8 @@ def process_chatbot_message(user: User, message: str) -> dict:
             parts=[types.Part(text=message)]
         ))
     
-    # Build config with tools
-    from chat.tools import (
-        edit_user_profile,
-        edit_user_profile_declaration,
-        call_main_coordinator,
-        call_main_coordinator_declaration
-    )
-    
-    tools = [
-        types.Tool(function_declarations=[
-            edit_user_profile_declaration,
-            call_main_coordinator_declaration
-        ])
-    ]
-    
-    config_obj = types.GenerateContentConfig(
-        system_instruction=agent.system_instruction,
-        tools=tools,
-        temperature=0.9,
-    )
+    # Use the helper function from agents.services to build config with proper tool settings
+    config_obj = build_config(agent)
     
     client = genai.Client(api_key=API_KEY)
     
@@ -230,53 +216,82 @@ def process_chatbot_message(user: User, message: str) -> dict:
             config=config_obj
         )
         
-        # Check if there are function calls
-        if response.candidates[0].content.parts[0].function_call:
-            # Process function calls
-            for part in response.candidates[0].content.parts:
-                if part.function_call:
-                    func_call = part.function_call
-                    func_name = func_call.name
-                    func_args = dict(func_call.args)
-                    
-                    # Add function call to history
-                    add_to_history(
-                        agent=agent,
-                        user=user,
-                        part={"parts": [{"function_call": {"name": func_name, "args": func_args}}]},
-                        role="model"
-                    )
-                    history.append(types.Content(
-                        role="model",
-                        parts=[types.Part(function_call=func_call)]
-                    ))
-                    
-                    # Execute the function
-                    if func_name == "edit_user_profile":
-                        result = edit_user_profile(user, **func_args)
-                    elif func_name == "call_main_coordinator":
-                        result = call_main_coordinator(user, **func_args)
-                    else:
-                        result = {"type": "error", "data": {"error": f"Unknown function: {func_name}"}}
-                    
-                    # Add function response to history
-                    func_response = types.FunctionResponse(
-                        name=func_name,
-                        response=result
-                    )
-                    
-                    add_to_history(
-                        agent=agent,
-                        user=user,
-                        part={"parts": [{"function_response": {"name": func_name, "response": result}}]},
-                        role="user"
-                    )
-                    history.append(types.Content(
-                        role="user",
-                        parts=[types.Part(function_response=func_response)]
-                    ))
+        print(f"DEBUG: Model response iteration {iteration}: {response}")
+        
+        # Check for function calls in ANY part of the content
+        function_call_part = None
+        for part in response.candidates[0].content.parts:
+            if part.function_call:
+                function_call_part = part.function_call
+                break
+        
+        if function_call_part:
+            function_call = function_call_part
+            func_name = function_call.name
+            func_args = dict(function_call.args)    
+            print(f"DEBUG: Chatbot Agent calling {func_name} with args: {func_args}...")
+            
+            # Add function call to history
+            add_to_history(
+                agent=agent,
+                user=user,
+                part={"parts": [{"function_call": {"name": func_name, "args": func_args}}]},
+                role="model"
+            )
+            history.append(types.Content(
+                role="model",
+                parts=[types.Part(function_call=function_call)]
+            ))
+            
+            # Execute the function - import tools and call directly
+            from chat.tools import (
+                edit_user_profile,
+                call_main_coordinator,
+                call_expense_manager,
+                call_report_agent
+            )
+            
+            if func_name == "edit_user_profile":
+                result = edit_user_profile(user, **func_args)
+            elif func_name == "call_main_coordinator":
+                result = call_main_coordinator(user, **func_args)
+            elif func_name == "call_expense_manager":
+                result = call_expense_manager(user, **func_args)
+            elif func_name == "call_report_agent":
+                result = call_report_agent(user, **func_args)
+            else:
+                result = {"type": "error", "data": {"error": f"Unknown function: {func_name}"}}
+                print(f"DEBUG: Unknown function {func_name}")
+            
+            print(f"DEBUG: Function {func_name} returned: {result}")
+            
+            # Add function call to history (model's action)
+            add_to_history(
+                agent=agent,
+                user=user,
+                part={"parts": [{"function_call": {"name": func_name, "args": func_args}}]},
+                role="model"
+            )
+            
+            # Add function response to history (function's result)
+            add_to_history(
+                agent=agent,
+                user=user,
+                part={"parts": [{"function_response": {"name": func_name, "response": result}}]},
+                role="user"
+            )
+            
+            # Update history for next iteration with proper types
+            history.append(types.Content(
+                role="model",
+                parts=[types.Part(function_call=types.FunctionCall(name=func_name, args=func_args))]
+            ))
+            history.append(types.Content(
+                role="user",
+                parts=[types.Part(function_response=types.FunctionResponse(name=func_name, response=result))]
+            ))
         else:
-            # No more function calls, we have the final response
+            # No function calls, we have the final response
             final_message = response.text
             
             add_to_history(

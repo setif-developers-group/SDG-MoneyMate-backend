@@ -62,14 +62,14 @@ def get_or_create_coordinator_agent() -> agentModel:
         defaults={
             "description": "Central orchestrator that coordinates all specialized agents in the AION system",
             "system_instruction": COORDINATOR_SYSTEM_INSTRUCTION,
-            "gemini_model": "gemini-2.5-flash-8b",
+            "gemini_model": "gemini-2.5-flash-lite",
             "thinking_budget": 0
         }
     )
     
     # Update model if it exists but configuration is different
-    if not created and (agent.gemini_model != "gemini-2.5-flash-8b" or agent.thinking_budget != 0):
-        agent.gemini_model = "gemini-2.5-flash-8b"
+    if not created and (agent.gemini_model != "gemini-2.5-flash-lite" or agent.thinking_budget != 0):
+        agent.gemini_model = "gemini-2.5-flash-lite"
         agent.thinking_budget = 0
         agent.save()
     
@@ -104,6 +104,7 @@ def process_coordinator_message(user: User, user_message: str) -> dict:
         - {"type": "response", "data": {"message": str, "agent_called": str|None}}
         - {"type": "error", "data": {"error": str}}
     """
+    print(f"DEBUG: Main AI Coordinator is running now... processing message: {user_message}")
     # Get or create agent
     agent = get_or_create_coordinator_agent()
     
@@ -154,7 +155,7 @@ def process_coordinator_message(user: User, user_message: str) -> dict:
                     func_name = func_call.name
                     func_args = dict(func_call.args)
                     
-                    # Add user to args
+                    # Add user to args for function execution
                     func_args['user'] = user
                     
                     # Track which agent is being called
@@ -164,13 +165,17 @@ def process_coordinator_message(user: User, user_message: str) -> dict:
                         agents_called.append(func_args.get('agent_name', 'unknown'))
                     
                     # Execute the function
+                    print(f"DEBUG: Main AI Coordinator calling {func_name} with args: {func_args}...")
                     result = execute_function(agent, func_name, func_args)
+                    
+                    # Prepare args for history (without user object - not JSON serializable)
+                    func_args_for_history = {k: v for k, v in func_args.items() if k != 'user'}
                     
                     # Add function call to history
                     add_to_history(
                         agent=agent,
                         user=user,
-                        part={"parts": [{"function_call": {"name": func_name, "args": func_args}}]},
+                        part={"parts": [{"function_call": {"name": func_name, "args": func_args_for_history}}]},
                         role="model"
                     )
                     
@@ -182,10 +187,10 @@ def process_coordinator_message(user: User, user_message: str) -> dict:
                         role="user"
                     )
                     
-                    # Update history for next iteration
+                    # Update history for next iteration with proper types
                     history.append(types.Content(
                         role="model",
-                        parts=[types.Part(function_call=types.FunctionCall(name=func_name, args=func_args))]
+                        parts=[types.Part(function_call=types.FunctionCall(name=func_name, args=func_args_for_history))]
                     ))
                     history.append(types.Content(
                         role="user",

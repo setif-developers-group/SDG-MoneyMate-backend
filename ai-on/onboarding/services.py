@@ -106,6 +106,7 @@ def process_onboarding_turn(user: User, user_message: str = None) -> dict:
         - {"type": "completed", "data": {success, message}}
         - {"type": "error", "data": {error}}
     """
+    print(f"DEBUG: Onboarding Agent is running now... processing message: {user_message}")
     # Get or create agent
     agent = get_or_create_onboarding_agent()
     
@@ -172,7 +173,9 @@ def process_onboarding_turn(user: User, user_message: str = None) -> dict:
                 if func_name == "finish_onboarding_and_save_info":
                     func_args['user'] = user
                 
+                
                 # Execute the function
+                print(f"DEBUG: Onboarding Agent calling {func_name} with args: {func_args}...")
                 result = execute_function(agent, func_name, func_args)
                 
                 # If it's ask_question, return the question

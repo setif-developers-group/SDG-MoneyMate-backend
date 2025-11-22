@@ -105,6 +105,36 @@ def call_main_coordinator(user: User, message: str) -> dict:
     return result
 
 
+def call_expense_manager(user: User, message: str) -> dict:
+    """
+    Call the Expense Manager Agent to track and manage expenses.
+    
+    Args:
+        user: The Django User object
+        message: The message/request to send to the Expense Manager
+        
+    Returns:
+        Dictionary with the Expense Manager's response
+    """
+    from expense.services import process_expense_management
+    return process_expense_management(user, message)
+
+
+def call_report_agent(user: User, message: str) -> dict:
+    """
+    Call the Report Agent to generate financial reports.
+    
+    Args:
+        user: The Django User object
+        message: The message/request to send to the Report Agent
+        
+    Returns:
+        Dictionary with the Report Agent's response
+    """
+    from expense.services import process_report_generation
+    return process_report_generation(user, message)
+
+
 # ============================================================================
 # FUNCTION DECLARATIONS FOR GEMINI API
 # ============================================================================
@@ -157,6 +187,36 @@ call_main_coordinator_declaration = {
             "message": {
                 "type": "string",
                 "description": "The request or task to delegate to the Main AI Coordinator."
+            }
+        },
+        "required": ["message"]
+    }
+}
+
+call_expense_manager_declaration = {
+    "name": "call_expense_manager",
+    "description": "Calls the Expense Manager Agent to track and record user expenses. Use this when the user mentions spending money, making a purchase, or wants to track an expense. Examples: 'I spent 500 at a coffee shop', 'Add expense of 200 for groceries', 'Track my purchase of 1000 for electronics'.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "message": {
+                "type": "string",
+                "description": "The user's expense description including amount, item/category, and any other details. Pass the user's message directly."
+            }
+        },
+        "required": ["message"]
+    }
+}
+
+call_report_agent_declaration = {
+    "name": "call_report_agent",
+    "description": "Calls the Report Agent to generate financial reports.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "message": {
+                "type": "string",
+                "description": "The request for the report."
             }
         },
         "required": ["message"]

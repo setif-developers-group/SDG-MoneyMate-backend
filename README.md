@@ -121,7 +121,7 @@ The onboarding process is an interactive chat with an AI agent.
 
 ### Chatbot
 
-The Chatbot is the primary conversational interface for AION, powered by **Gemini 2.0 Flash-Lite**.
+The Chatbot is the primary conversational interface for AION, powered by **Gemini 2.5 Flash-Lite**.
 
 -   **Send Message:** `POST /api/chat/`
     -   Send a message to the chatbot and receive a conversational response.
@@ -140,7 +140,9 @@ The Chatbot is the primary conversational interface for AION, powered by **Gemin
     -   **Capabilities:**
         -   General conversation and financial advice
         -   Update user profile (income, savings, debts, etc.)
-        -   Delegate complex tasks to specialized agents (budgets, forecasts, etc.)
+        -   Track expenses ("I spent 500 at a coffee shop")
+        -   Manage budgets (create, update, delete budget categories)
+        -   Delegate complex tasks to specialized agents (forecasts, reports, etc.)
         -   Personalized responses based on user profile
 
 -   **Get Chat History:** `GET /api/chat/history/`
@@ -207,6 +209,37 @@ The Budget module uses an **Event-Driven AI Agent** to manage and generate budge
 -   **Delete Budget:** `DELETE /api/budget/{id}/`
     -   Deletes a category.
     -   **Event-Driven Behavior:** Triggers the AI to **rebalance** the remaining funds into other categories or savings.
+
+### Expense Manager
+
+The Expense Manager handles multi-modal expense tracking and reporting using **Gemini 2.5 Flash**. AI automatically extracts expense details from natural language or files.
+
+-   **Add Expense:** `POST /api/expenses/`
+    -   **AI-Powered Extraction:** Send natural language text or upload receipt images/PDFs. The AI extracts amount, category, product name, and description automatically.
+    -   **Request Body (Text):**
+        ```json
+        {
+          "message": "I spent 500 DZD at a coffee shop"
+        }
+        ```
+    -   **Request (File):** `multipart/form-data` with `file` (image/PDF) and optional `message`.
+    -   **Response:**
+        ```json
+        {
+          "message": "Processed 1 expenses.",
+          "expenses": [{"product": "Coffee shop purchase", "amount": 500.0, "category": "Food & Dining"}],
+          "alerts": []
+        }
+        ```
+    -   **Note:** The AI matches expenses to existing budget categories automatically.
+
+-   **List Expenses:** `GET /api/expenses/`
+    -   Returns a list of all recorded expenses.
+
+-   **Generate Report:** `POST /api/expenses/report/`
+    -   Generates a comprehensive financial report in Markdown.
+    -   **Request Body:** `{"message": "Generate a monthly report"}`.
+    -   **Response:** `{"report": "# Financial Report..."}`.
 
 ### Other Modules
 

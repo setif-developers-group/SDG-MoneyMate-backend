@@ -145,15 +145,10 @@ def call_expense_manager(user: User, message: str) -> dict:
         Dictionary with the Expense Manager's response
     """
     # Lazy import to avoid circular dependency
-    # TODO: Implement when expense manager service is created
-    # from expenses.services import process_expense_management
-    # result = process_expense_management(user, message)
-    # return result
+    from expense.services import process_expense_management
     
-    return {
-        "type": "error",
-        "data": {"error": "Expense Manager agent not yet implemented"}
-    }
+    result = process_expense_management(user, message)
+    return result
 
 
 def call_forecast_agent(user: User, message: str) -> dict:
@@ -171,6 +166,24 @@ def call_forecast_agent(user: User, message: str) -> dict:
     from forecast.services import process_forecast_request
     
     result = process_forecast_request(user, message)
+    return result
+
+
+def call_report_agent(user: User, message: str) -> dict:
+    """
+    Call the Report Agent to generate financial reports.
+    
+    Args:
+        user: The Django User object
+        message: The message/request to send to the Report Agent
+        
+    Returns:
+        Dictionary with the Report Agent's response
+    """
+    # Lazy import to avoid circular dependency
+    from expense.services import process_report_generation
+    
+    result = process_report_generation(user, message)
     return result
 
 
@@ -208,6 +221,7 @@ def send_message_to_agent(
         "notification_agent": call_notification_agent,
         "expense_manager": call_expense_manager,
         "forecast_agent": call_forecast_agent,
+        "report_agent": call_report_agent,
     }
     
     if agent_name in agent_map:
@@ -366,6 +380,21 @@ call_forecast_agent_declaration = {
     }
 }
 
+call_report_agent_declaration = {
+    "name": "call_report_agent",
+    "description": "Calls the Report Agent to generate financial reports.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "message": {
+                "type": "string",
+                "description": "The request for the report."
+            }
+        },
+        "required": ["message"]
+    }
+}
+
 # Generic send_message_to_agent declaration - can be customized per agent
 def create_send_message_declaration(allowed_agents: List[str]) -> dict:
     """
@@ -407,7 +436,8 @@ send_message_to_agent_declaration = create_send_message_declaration([
     "product_advisor",
     "notification_agent",
     "expense_manager",
-    "forecast_agent"
+    "forecast_agent",
+    "report_agent"
 ])
 
 
