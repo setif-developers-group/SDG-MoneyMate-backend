@@ -29,10 +29,19 @@ You are the crucial first step for AION, a multi-agent personal finance manageme
 YOUR ROLE IN THE SYSTEM
 The AION system needs specific financial data before users can start tracking expenses and managing budgets. You collect this data through a friendly conversation and structure it for the backend. After you are satisfied with the collected data, you will call `finish_onboarding_and_save_info()`.
 
+DEMO MODE - QUICK ONBOARDING
+**When users are trying the system for the first time or in demo mode, keep the onboarding QUICK and EFFICIENT:**
+* **Limit to 5-7 questions maximum** to get them started quickly
+* Focus on the core essentials: monthly income, basic savings/debts, and 2-3 main budget categories
+* Use sensible defaults where appropriate (e.g., DZD currency, balanced risk preference)
+* Keep explanations brief and to the point
+* **After collecting the minimum viable data, finish onboarding so users can start exploring the system**
+* Users can always update their profile later through the chatbot
+
 WHAT YOU DO
 * Ask clear, structured questions to collect required user information.
 * **Use the ask_question() function to ask only 1 question at a time (do not ask more than one question per turn).**
-* Explain why you need each piece of information.
+* Explain why you need each piece of information (briefly in demo mode).
 * Be encouraging and patient.
 * **Build the 'Preferred budget categories' by asking questions to understand the user's spending needs and priorities (this will be part of the Extra Info or Personal Info structure).**
 * Structure all collected data properly.
@@ -68,10 +77,14 @@ def get_or_create_onboarding_agent() -> agentModel:
         defaults={
             "description": "Collects financial information from new users during onboarding",
             "system_instruction": ONBOARDING_SYSTEM_INSTRUCTION,
-            "gemini_model": "gemini-2.0-flash",
+            "gemini_model": "gemini-2.5-flash",
             "thinking_budget": 0
         }
     )
+    
+    if not created and agent.gemini_model != "gemini-2.5-flash":
+        agent.gemini_model = "gemini-2.5-flash"
+        agent.save()
     
     
     # Register functions if newly created or not already registered
@@ -142,6 +155,11 @@ def process_onboarding_turn(user: User, user_message: str = None) -> dict:
     
     # Build config
     config_obj = build_config(agent)
+    config_obj.tool_config = types.ToolConfig(
+            function_calling_config=types.FunctionCallingConfig(
+                mode="ANY"
+            )
+        )
     
     # Create Gemini client
     client = genai.Client(api_key=API_KEY)
@@ -154,15 +172,38 @@ def process_onboarding_turn(user: User, user_message: str = None) -> dict:
     )
     
     # Save model response to history
+    model_parts = []
+    if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
+        for part in response.candidates[0].content.parts:
+            part_dict = {}
+            if hasattr(part, 'text') and part.text:
+                part_dict["text"] = part.text
+            
+            if hasattr(part, 'function_call') and part.function_call:
+                part_dict["function_call"] = {
+                    "name": part.function_call.name,
+                    "args": dict(part.function_call.args)
+                }
+            
+            if part_dict:
+                model_parts.append(part_dict)
+    
+    # Fallback
+    if not model_parts:
+        model_parts.append({"text": response.text if response.text else ""})
+
+    print(f"DEBUG: Saving model response to history: {model_parts}")
     add_to_history(
         agent=agent,
         user=user,
-        part={"parts": [{"text": response.text if response.text else ""}]},
+        part={"parts": model_parts},
         role="model"
     )
+    print("Model response:", response)
     
     # Check if there are function calls
     if response.candidates[0].content.parts:
+        
         for part in response.candidates[0].content.parts:
             if hasattr(part, 'function_call') and part.function_call:
                 func_call = part.function_call

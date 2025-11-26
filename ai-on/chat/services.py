@@ -12,6 +12,7 @@ from django.contrib.auth.models import User
 from google import genai
 from google.genai import types
 from decouple import config
+import re
 
 API_KEY = config('GEMINI_API_KEY')
 
@@ -66,6 +67,11 @@ BEHAVIOR GUIDELINES:
 - Be warm, friendly, and conversational
 - Use the user's name when appropriate
 - After using a tool, explain the result naturally to the user
+
+OUTPUT FORMAT:
+- NEVER include HTML tags in your responses (no <div>, <tbody>, <p>, etc.)
+- Always respond in plain text, using natural language
+- Use markdown formatting if needed (**, *, -, etc.) but NEVER HTML
 '''
 
 def get_or_create_chatbot_agent() -> agentModel:
@@ -170,6 +176,21 @@ def get_user_financial_profile(user: User) -> str:
         return f"User: {user.username} (Profile not fully set up)"
 
 
+def clean_html_tags(text: str) -> str:
+    """
+    Remove HTML tags from text.
+    
+    Args:
+        text: Text that may contain HTML tags
+        
+    Returns:
+        Clean text without HTML tags
+    """
+    # Remove HTML tags using regex
+    clean_text = re.sub(r'<[^>]+>', '', text)
+    return clean_text.strip()
+
+
 def process_chatbot_message(user: User, message: str) -> dict:
     """
     Process a message from the user to the chatbot.
@@ -232,6 +253,11 @@ def process_chatbot_message(user: User, message: str) -> dict:
         )
         
         print(f"DEBUG: Model response iteration {iteration}: {response}")
+        
+        # Check if response has valid content
+        if not response.candidates or not response.candidates[0].content or not response.candidates[0].content.parts:
+            print("DEBUG: Model returned empty response, breaking loop")
+            break
         
         # Check for function calls in ANY part of the content
         function_call_part = None
@@ -310,7 +336,15 @@ def process_chatbot_message(user: User, message: str) -> dict:
             ))
         else:
             # No function calls, we have the final response
-            final_message = response.text
+            try:
+                final_message = response.text
+            except (AttributeError, ValueError) as e:
+                print(f"DEBUG: Error accessing response.text: {e}")
+                final_message = "I apologize, but I encountered an issue processing your request. Please try again."
+            
+            # Clean any HTML tags from the response
+            final_message = clean_html_tags(final_message)
+            print(f"DEBUG: Final cleaned message: {final_message}")
             
             add_to_history(
                 agent=agent,

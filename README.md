@@ -1,6 +1,69 @@
 # AI-On Backend
 
-This is the backend repository for the AI-On project, built with Django and Django REST Framework. It provides API endpoints for user authentication, AI-driven onboarding, and other core features.
+## 📖 Overview
+
+**AI-On** is an intelligent personal finance management system powered by a **multi-agent AI architecture**. The application leverages Google's Gemini AI models to provide users with personalized financial guidance, automated expense tracking, smart budgeting, and product recommendations.
+
+Unlike traditional finance apps, AI-On uses specialized AI agents that work together to handle different aspects of financial management. Each agent is an expert in its domain, and they collaborate seamlessly to provide a comprehensive, conversational financial assistant experience.
+
+### 🎯 Key Features
+
+- **AI-Driven Onboarding**: Interactive conversational onboarding that learns about your financial situation
+- **Intelligent Chatbot**: Natural language interface for all financial operations (Gemini 2.5 Flash-Lite)
+- **Multi-Modal Expense Tracking**: Extract expenses from text, images, or PDF receipts automatically
+- **Smart Budget Management**: AI-powered budget generation and automatic rebalancing
+- **Product Advisor**: Get personalized product recommendations based on your budget
+- **Financial Forecasting**: Predict future spending patterns and financial health
+- **Centralized Notifications**: Stay informed about budget alerts, spending warnings, and tips
+
+## 🤖 Multi-Agent Architecture
+
+AI-On is built on a **multi-agent system** where specialized AI agents collaborate to provide comprehensive financial management:
+
+| Agent | Model | Purpose |
+|-------|-------|---------|
+| **Onboarding Agent** | Gemini 2.5 Flash | Guides new users through initial setup with conversational questions |
+| **Chatbot Agent** | Gemini 2.5 Flash-Lite | Primary conversational interface, delegates to specialized agents |
+| **Main AI Coordinator** | Gemini 2.5 Flash-Lite | Orchestrates complex multi-step tasks across agents |
+| **Budget Agent** | Gemini 2.5 Flash | Generates and manages budgets with event-driven rebalancing |
+| **Expense Manager** | Gemini 2.5 Flash | Extracts and categorizes expenses from text and files |
+| **Advisor Agent** | Gemini 2.5 Flash | Provides product recommendations and purchase analysis |
+| **Report Agent** | Gemini 2.5 Flash | Generates comprehensive financial reports |
+| **Forecast Agent** | Gemini 2.5 Flash | Predicts spending patterns and financial trends |
+| **Notify Agent** | N/A | Centralized notification system used by all agents |
+
+### Agent Communication
+
+Agents communicate through a **function calling** mechanism:
+- The **Chatbot** is the user-facing interface and can call other agents
+- The **Main AI Coordinator** orchestrates complex workflows
+- Specialized agents (Budget, Expense, Advisor) perform domain-specific tasks
+- All agents can create notifications through the **Notify Agent**
+
+## 🛠️ Technology Stack
+
+### Backend Framework
+- **Django 5.x** - Web framework
+- **Django REST Framework (DRF)** - RESTful API development
+- **drf-spectacular** - OpenAPI 3.0 schema generation and Swagger UI
+
+### AI & Machine Learning
+- **Google Generative AI (Gemini)** - Multi-modal AI models
+  - Gemini 2.5 Flash - Advanced reasoning and generation
+  - Gemini 2.5 Flash-Lite - Fast conversational responses
+- **Pydantic** - Data validation and structured outputs
+
+### Authentication & Security
+- **djangorestframework-simplejwt** - JWT authentication
+- **Django's built-in security** - CSRF, XSS protection
+
+### Database
+- **SQLite** (Development) - Lightweight database for local development
+- **PostgreSQL-ready** - Production-ready with minimal configuration changes
+
+### Additional Libraries
+- **Pillow** - Image processing for receipt uploads
+- **python-multipart** - File upload handling
 
 ## 🚀 Getting Started
 

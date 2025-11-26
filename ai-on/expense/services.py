@@ -199,7 +199,7 @@ def process_expense_management(user: User, message: str, file_path: str = None, 
                     )
                 
                 # Check for budget warnings (80% threshold)
-                elif budget.spent >= budget.budget * 0.8 and budget.spent <= budget.budget:
+                elif budget.spent >= budget.budget * Decimal('0.8') and budget.spent <= budget.budget:
                     percentage = (budget.spent / budget.budget) * 100
                     create_notification(
                         user=user,
